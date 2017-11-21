@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>gl_transtions</title>
+    <style>
+        .demo_image{
+            width: 200px;
+        }
+    </style>
+</head>
+<body>
+<img id="images01" class="demo_image" src="images/img8.jpg">
+<img id="images02" class="demo_image" src="images/img12.jpg">
+<video id="video1" autoplay loop class="demo_image" src="media/fun.mp4"></video>
+<video id="video2" autoplay loop class="demo_image" src="media/video1.m4v"></video>
+<!--<video id="video2" loop class="demo_image" src="media/fun.mp4"></video>-->
+<div id="canvas_wrapper" class="canvas_wrapper"></div>
+
+<!-- 创建图片  -->
+<script src="./js/lib/gl_createTexture.js"></script>
+<!-- 创建动画 -->
+<script src="./js/lib/gl_createTransition.js"></script>
+<!-- 动画库 -->
+<script src="./js/lib/gl_transitions.js"></script>
+
+<script src="./js/lib/jquery.min.js"></script>
+
+<script>
+  (function () {
+    function GL_transtion() {
+      this.refresh_time = 100;  // canvas 重绘时间 ms    1s = 1000ms
+    }
+    GL_transtion.prototype = {
+      init: function (options) {
+        this.width = options.width || 300;
+        this.height = options.height || 200;
+        this.imageFrom = options.imageFrom;
+        this.imageTo = options.imageTo;
+        this.target = options.target; // 原生dom
+        this.transition_time = options.transition_time; // 过渡时间
+
+        this.createCanvas();
+        this.createTransition();
+      },
+      // 创建canvas
+      createCanvas: function () {
+        this.canvas = document.createElement("canvas");
+        $(this.target).append(this.canvas);
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+      },
+      // 创建动画
+      createTransition: function () {
+        var canvas = this.canvas;
+        var imageFrom = this.imageFrom;
+        var imageTo = this.imageTo;
+        const animateType = 'squareswire';
+        const gl = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+        const buffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(
+          gl.ARRAY_BUFFER,
+          new Float32Array([-1, -1, -1, 4, 4, -1]), // see a-big-triangle
+          gl.STATIC_DRAW
+        );
+        gl.viewport(0, 0, canvas.width, canvas.height);
+
+        const from = gl_createTexture(gl, imageFrom);
+        from.minFilter = gl.LINEAR;
+        from.magFilter = gl.LINEAR;
+
+        const to = gl_createTexture(gl, imageTo);
+        to.minFilter = gl.LINEAR;
+        to.magFilter = gl.LINEAR;
+
+        // 创建动画
+        const transition = gl_createTransition(gl, gl_transitions.find(t => t.name === animateType)); // https://github.com/gl-transitions/gl-transitions/blob/master/transitions/cube.glsl
+//
+//        // 默认动画第一帧
+//        transition.draw(0, from, to, canvas.width, canvas.height, {});
+        let interval;
+        let step = 1 / (this.transition_time / this.refresh_time);
+        transition.draw(0, from, to, canvas.width, canvas.height, {});
+        let percentX = 0;
+        interval = setInterval(() => {
+          const from = gl_createTexture(gl, imageFrom);
+          const to = gl_createTexture(gl, imageTo);
+          transition.draw((percentX), from, to, canvas.width, canvas.height, {});
+          percentX = percentX + step;
+          if (percentX > 1) {
+            percentX = 0;
+            transition.draw((percentX), from, to, canvas.width, canvas.height, {});
+            // clearInterval(interval);
+          }
+        }, this.refresh_time)
+      }
+    };
+    window.GL_transtion = GL_transtion;
+  })();
+  var gl_transtion_demo1 = new GL_transtion();
+  setTimeout (function () {
+    gl_transtion_demo1.init({
+      target: document.getElementById('canvas_wrapper'),                         // f放置canvas的节点 Id
+      imageFrom: document.getElementById('video1'),  // 过渡前节点
+      imageTo: document.getElementById('video2'),     // 过渡后节点
+      transition_time: 10000                           // 过渡时间 ms
+    })
+  }, 3000)
+</script>
+
+<script>
+//  const imageFrom = document.getElementById('images01');
+//  const imageTo = document.getElementById('video1');
+//  const canvas = document.createElement("canvas");
+//  $('.canvas_wrapper').append(canvas);
+//  canvas.width = 300;
+//  canvas.height = 200;
+  // };
+  // initCanvas();
+
+  // })
+window.onfocus = function () {
+  $('title').text('正常了')
+};
+window.onblur = function () {
+  $('title').text('快回来~页面崩溃了')
+}
+</script>
+</body>
+</html>
